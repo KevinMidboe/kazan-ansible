@@ -1,0 +1,14 @@
+---
+- include: install.yml
+
+- include: certs-controller.yml
+  when: "'controller' in group_names or 'load-balancer' in group_names"
+
+# - include: certs-lb.yml
+#   when: "'load-balancer' in group_names"
+
+- include: certs-worker.yml
+  when: "'worker' in group_names"
+
+- include: systemd-service.yml
+  when: "'controller' in group_names"

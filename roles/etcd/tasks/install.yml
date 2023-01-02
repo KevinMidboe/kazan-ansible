@@ -1,0 +1,8 @@
+---
+- name: Create etcd config dir
+  file: path=/etc/etcd state=directory
+  become: true
+
+- name: Create etcd data dir
+  file: path=/var/lib/etcd state=directory
+  become: true

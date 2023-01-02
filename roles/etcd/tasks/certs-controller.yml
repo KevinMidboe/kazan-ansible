@@ -1,0 +1,14 @@
+---
+- name: Copy controller certificates
+  copy:
+    src: "{{ playbook_dir }}/../../kazan-ssl/pki/{{ item }}"
+    dest: "/etc/etcd/"
+    owner: root
+    group: root
+    mode: 0644
+
+  become: true
+  with_items:
+    - ca/ca.pem
+    - api/kubernetes-key.pem
+    - api/kubernetes.pem
