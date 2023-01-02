@@ -86,7 +86,7 @@
 - name: Copy admin kube config
   copy:
     src: "{{ playbook_dir }}/../../kazan-ssl/configs/admin/admin.kubeconfig"
-    dest: /opt/kubernetes/admin.kubeconfig
+    dest: /etc/kubernetes/config
     owner: root
     group: root
     mode: 0644
@@ -128,7 +128,7 @@
   become: true
 
 - name: Verify Kubernetes status
-  shell: kubectl get componentstatuses --kubeconfig /opt/kubernetes/admin.kubeconfig
+  shell: kubectl get componentstatuses --kubeconfig /etc/kubernetes/config/admin.kubeconfig
   register: cmd_result
   retries: 5
   delay: 10
