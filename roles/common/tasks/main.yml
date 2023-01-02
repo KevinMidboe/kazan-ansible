@@ -1,0 +1,12 @@
+---
+  - name: update apt
+    apt:
+      update_cache: yes
+      cache_valid_time: 86400
+    become: true
+
+  - name: install required packages
+    package:
+      name:
+        - etcd
+    become: true
