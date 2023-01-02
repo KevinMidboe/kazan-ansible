@@ -1,0 +1,142 @@
+---
+- name: Download Kuberneters controller binaries
+  get_url:
+    url: "{{ kubernetes_download_path }}/{{ item }}"
+    dest: /usr/local/bin
+    owner: root
+    group: root
+    mode: 0755
+    # TODO Add hash check
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kubectl
+  become: true
+
+- name: Create kubernetes var dir
+  file: path=/var/lib/kubernetes state=directory
+  become: true
+
+- name: Create kubernetes etc dir
+  file: path=/etc/kubernetes/config state=directory
+  become: true
+
+- name: Copy Authorisation files
+  copy:
+    src: "{{ playbook_dir }}/../../kazan-ssl/data-encryption/{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - encryption-config.yaml
+  become: true
+
+- name: Copy cert files
+  copy:
+    src: "{{ playbook_dir }}/../../kazan-ssl/pki/{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - ca/ca.pem
+    - ca/ca-key.pem
+    - api/kubernetes-key.pem
+    - api/kubernetes.pem
+    - service-account/service-account-key.pem
+    - service-account/service-account.pem
+    - front-proxy/front-proxy-key.pem
+    - front-proxy/front-proxy.pem
+  become: true
+
+- name: Copy kube-* kubeconfig files
+  copy:
+    src: "{{ playbook_dir }}/../../kazan-ssl/configs/{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - controller/kube-controller-manager.kubeconfig
+    - scheduler/kube-scheduler.kubeconfig
+  become: true
+
+- name: Copy kube-* config files
+  copy:
+    src: "{{ item }}"
+    dest: /etc/kubernetes/config
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - kube-scheduler.yml
+  become: true
+
+- name: Copy kube audit policy file
+  copy:
+    src: audit-policy.yml
+    dest: /etc/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  become: true
+
+- name: Copy admin kube config
+  copy:
+    src: "{{ playbook_dir }}/../../kazan-ssl/configs/admin/admin.kubeconfig"
+    dest: /opt/kubernetes/admin.kubeconfig
+    owner: root
+    group: root
+    mode: 0644
+    directory_mode: false
+  become: true
+
+- name: Add kube-* systemd unit
+  template:
+    src: "{{ item }}.service.j2"
+    dest: /etc/systemd/system/{{ item }}.service
+    mode: 700
+  with_items:
+    - kube-controller-manager
+    - kube-apiserver
+    - kube-scheduler
+  become: true
+
+- name: Reload systemd
+  command: systemctl daemon-reload
+  become: true
+
+- name: Enable kube-* services
+  command: "systemctl enable {{ item }}"
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+  become: true
+
+- name: Restart kube-* services
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+  become: true
+
+- name: Verify Kubernetes status
+  shell: kubectl get componentstatuses --kubeconfig /opt/kubernetes/admin.kubeconfig
+  register: cmd_result
+  retries: 5
+  delay: 10
+
+- assert:
+    that:
+      - "'scheduler            Healthy' in cmd_result.stdout"
+      - "'controller-manager   Healthy' in cmd_result.stdout"
+      - "'etcd-0               Healthy' in cmd_result.stdout"
+      - "'etcd-1               Healthy' in cmd_result.stdout"
+      - "'etcd-2               Healthy' in cmd_result.stdout"

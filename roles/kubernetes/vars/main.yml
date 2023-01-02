@@ -1,0 +1,4 @@
+---
+
+kubernetes_version: "v1.26.0"
+kubernetes_download_path: "https://dl.k8s.io/{{ kubernetes_version }}/bin/linux/amd64"
