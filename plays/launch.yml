@@ -1,0 +1,12 @@
+---
+- name: "launch"
+  hosts: controller
+  roles: 
+    - role: roles/common
+    - role: roles/etcd
+    - role: roles/kubernetes
+
+- hosts: worker
+  roles:
+    - role: roles/common
+    - role: roles/etcd
